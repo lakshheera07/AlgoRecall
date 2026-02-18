@@ -1,14 +1,9 @@
-import {
-  createProblem,
-  deleteProblemById,
-  getAllProblems,
-  getProblemById,
-  updateProblemById,
-} from '../data/store.js'
+import prisma from '../db.js'
 
 const REQUIRED_FIELDS = [
   'title',
   'platform',
+  'dataStructure',
   'pattern',
   'difficulty'
 ]
@@ -46,6 +41,8 @@ function normalizeProblemPayload(payload) {
   return {
     title: payload.title?.trim(),
     platform: payload.platform?.trim(),
+    dataStructure:
+      typeof payload.dataStructure === 'string' ? payload.dataStructure.trim() : '',
     pattern: payload.pattern?.trim(),
     difficulty: payload.difficulty?.trim(),
     describeProblemInOwnWords:
@@ -59,28 +56,51 @@ function normalizeProblemPayload(payload) {
   }
 }
 
-export function createProblemHandler(request, response) {
+export async function createProblemHandler(request, response) {
   const validationErrors = validateProblemPayload(request.body)
   if (validationErrors.length > 0) {
     return response.status(400).json({ errors: validationErrors })
   }
 
-  const payload = normalizeProblemPayload(request.body)
-  const createdProblem = createProblem(payload)
-  return response.status(201).json(createdProblem)
+  try {
+    const createdProblem = await prisma.problem.create({
+      data: normalizeProblemPayload(request.body),
+    })
+
+    return response.status(201).json(createdProblem)
+  } catch (error) {
+    console.error(error)
+    return response.status(500).json({ error: 'Failed to create problem' })
+  }
 }
 
-export function getAllProblemsHandler(_request, response) {
-  return response.status(200).json(getAllProblems())
+export async function getAllProblemsHandler(_request, response) {
+  try {
+    const problems = await prisma.problem.findMany({
+      orderBy: { id: 'desc' },
+    })
+
+    return response.status(200).json(problems)
+  } catch (error) {
+    console.error(error)
+    return response.status(500).json({ error: 'Failed to fetch problems' })
+  }
 }
 
-export function getProblemByIdHandler(request, response) {
+export async function getProblemByIdHandler(request, response) {
   const problemId = parseIdParam(request.params.id)
   if (!problemId) {
     return response.status(400).json({ error: 'Invalid problem ID' })
   }
 
-  const problem = getProblemById(problemId)
+  let problem
+  try {
+    problem = await prisma.problem.findUnique({ where: { id: problemId } })
+  } catch (error) {
+    console.error(error)
+    return response.status(500).json({ error: 'Failed to fetch problem' })
+  }
+
   if (!problem) {
     return response.status(404).json({ error: 'Problem not found' })
   }
@@ -88,7 +108,7 @@ export function getProblemByIdHandler(request, response) {
   return response.status(200).json(problem)
 }
 
-export function updateProblemHandler(request, response) {
+export async function updateProblemHandler(request, response) {
   const problemId = parseIdParam(request.params.id)
   if (!problemId) {
     return response.status(400).json({ error: 'Invalid problem ID' })
@@ -99,25 +119,47 @@ export function updateProblemHandler(request, response) {
     return response.status(400).json({ errors: validationErrors })
   }
 
-  const existingProblem = getProblemById(problemId)
+  let existingProblem
+  try {
+    existingProblem = await prisma.problem.findUnique({ where: { id: problemId } })
+  } catch (error) {
+    console.error(error)
+    return response.status(500).json({ error: 'Failed to update problem' })
+  }
+
   if (!existingProblem) {
     return response.status(404).json({ error: 'Problem not found' })
   }
 
-  const payload = normalizeProblemPayload({ ...existingProblem, ...request.body })
-  const updatedProblem = updateProblemById(problemId, payload)
+  let updatedProblem
+  try {
+    updatedProblem = await prisma.problem.update({
+      where: { id: problemId },
+      data: normalizeProblemPayload({ ...existingProblem, ...request.body }),
+    })
+  } catch (error) {
+    console.error(error)
+    return response.status(500).json({ error: 'Failed to update problem' })
+  }
+
   return response.status(200).json(updatedProblem)
 }
 
-export function deleteProblemHandler(request, response) {
+export async function deleteProblemHandler(request, response) {
   const problemId = parseIdParam(request.params.id)
   if (!problemId) {
     return response.status(400).json({ error: 'Invalid problem ID' })
   }
 
-  const deletedProblem = deleteProblemById(problemId)
-  if (!deletedProblem) {
-    return response.status(404).json({ error: 'Problem not found' })
+  try {
+    await prisma.problem.delete({ where: { id: problemId } })
+  } catch (error) {
+    if (error?.code === 'P2025') {
+      return response.status(404).json({ error: 'Problem not found' })
+    }
+
+    console.error(error)
+    return response.status(500).json({ error: 'Failed to delete problem' })
   }
 
   return response.status(200).json({ message: 'Problem deleted successfully' })

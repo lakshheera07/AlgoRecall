@@ -1,6 +1,9 @@
 import cors from 'cors'
 import express from 'express'
 import problemsRouter from './routes/problemsRoutes.js'
+import dotenv from 'dotenv'
+
+dotenv.config()
 
 const app = express()
 const PORT = Number.parseInt(process.env.PORT ?? '5000', 10)
@@ -24,5 +27,5 @@ app.use((error, _request, response, _next) => {
 })
 
 app.listen(PORT, () => {
-  console.log(`AlgoRecall API running on port ${PORT}`)
+  console.log(`AlgoRecall API running on port ${process.env.PORT}`)
 })
