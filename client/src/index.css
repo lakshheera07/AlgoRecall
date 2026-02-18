@@ -1,0 +1,28 @@
+:root {
+  --primary-green: #16A34A;
+  --secondary-green: #22C55E;
+  --accent-green: #86EFAC;
+
+  --bg-main: #F0FDF4;
+  --bg-card: #ECFDF5;
+
+  --text-primary: #064E3B;
+  --text-secondary: #065F46;
+
+  --warning: #F59E0B;
+  --danger: #DC2626;
+
+  font-family: Arial, sans-serif;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  background: var(--bg-main);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg-main);
+}
