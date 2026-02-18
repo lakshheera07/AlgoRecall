@@ -1,11 +1,14 @@
 import { useState } from 'react'
+import { toast } from 'react-toastify'
+import ConfirmDialog from '../components/ConfirmDialog'
 import { useProblems } from '../state/ProblemsContext'
 
 function ProblemListPage() {
-  const { problems, submitRecall } = useProblems()
+  const { problems, submitRecall, deleteProblem, isLoading, errorMessage } = useProblems()
   const [openProblemId, setOpenProblemId] = useState(null)
   const [revealedByProblemId, setRevealedByProblemId] = useState({})
   const [confidenceByProblemId, setConfidenceByProblemId] = useState({})
+  const [pendingDeleteId, setPendingDeleteId] = useState(null)
 
   function handleToggle(problemId) {
     setOpenProblemId((prev) => {
@@ -39,11 +42,48 @@ function ProblemListPage() {
     setOpenProblemId(null)
   }
 
+  function openDeleteDialog(problemId) {
+    setPendingDeleteId(problemId)
+  }
+
+  function closeDeleteDialog() {
+    setPendingDeleteId(null)
+  }
+
+  async function confirmDelete() {
+    if (!pendingDeleteId) {
+      return
+    }
+
+    try {
+      await deleteProblem(pendingDeleteId)
+      setOpenProblemId((prev) => (prev === pendingDeleteId ? null : prev))
+      toast.success('Problem deleted successfully')
+    } catch (error) {
+      toast.error(error.message || 'Failed to delete problem')
+    } finally {
+      closeDeleteDialog()
+    }
+  }
+
   return (
     <section className="page-section">
       <h2>Problem List</h2>
 
-      {problems.length === 0 ? (
+      {isLoading ? <p>Loading problems...</p> : null}
+      {errorMessage ? <p>{errorMessage}</p> : null}
+
+      <ConfirmDialog
+        open={Boolean(pendingDeleteId)}
+        title="Delete Problem"
+        message="Are you sure you want to delete this problem?"
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={confirmDelete}
+        onCancel={closeDeleteDialog}
+      />
+
+      {!isLoading && problems.length === 0 ? (
         <p>No problems saved yet.</p>
       ) : (
         <ul className="problem-list">
@@ -51,16 +91,32 @@ function ProblemListPage() {
             <li key={problem.id} className="problem-card">
               <div className="problem-row">
                 <h3>{problem.title}</h3>
-                <button type="button" onClick={() => handleToggle(problem.id)}>
-                  {openProblemId === problem.id ? 'Hide' : 'Revise'}
-                </button>
+                <div className="problem-row-actions">
+                  <button type="button" onClick={() => handleToggle(problem.id)}>
+                    {openProblemId === problem.id ? 'Hide' : 'Revise'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-danger"
+                    onClick={() => openDeleteDialog(problem.id)}
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
 
               {openProblemId === problem.id ? (
                 <div className="accordion-content">
-                  <p>
-                    Description: {problem.describeProblemInOwnWords || 'Not provided.'}
-                  </p>
+                  <div className="recall-header-row">
+                    <p>
+                      Description: {problem.describeProblemInOwnWords || 'Not provided.'}
+                    </p>
+                    {!revealedByProblemId[problem.id] ? (
+                      <button type="button" onClick={() => handleReveal(problem.id)}>
+                        Reveal
+                      </button>
+                    ) : null}
+                  </div>
                   <p>Difficulty: {problem.difficulty}</p>
                   <p>Mentally recall before revealing:</p>
                   <ul>
@@ -69,12 +125,6 @@ function ProblemListPage() {
                     <li>Why does brute force fail?</li>
                     <li>What is the optimal approach?</li>
                   </ul>
-
-                  {!revealedByProblemId[problem.id] ? (
-                    <button type="button" onClick={() => handleReveal(problem.id)}>
-                      Reveal
-                    </button>
-                  ) : null}
 
                   {revealedByProblemId[problem.id] ? (
                     <>

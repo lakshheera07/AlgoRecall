@@ -1,18 +1,55 @@
-import { createContext, useContext, useMemo, useState } from 'react'
-import { initialProblems } from '../data/dummyProblems'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import {
+  createProblemApi,
+  deleteProblemApi,
+  fetchProblemsApi,
+} from '../api/problemsApi'
 
 const ProblemsContext = createContext(null)
 
 export function ProblemsProvider({ children }) {
-  const [problems, setProblems] = useState(initialProblems)
+  const [problems, setProblems] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState('')
 
-  function addProblem(formValues) {
-    const newProblem = {
-      id: Date.now(),
-      ...formValues,
-      lastConfidence: null,
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadProblems() {
+      try {
+        setIsLoading(true)
+        setErrorMessage('')
+        const data = await fetchProblemsApi()
+
+        if (isMounted) {
+          setProblems(data)
+        }
+      } catch (error) {
+        if (isMounted) {
+          setErrorMessage(error.message)
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false)
+        }
+      }
     }
-    setProblems((prev) => [newProblem, ...prev])
+
+    loadProblems()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  async function addProblem(formValues) {
+    const createdProblem = await createProblemApi(formValues)
+    setProblems((prev) => [createdProblem, ...prev])
+  }
+
+  async function deleteProblem(problemId) {
+    await deleteProblemApi(problemId)
+    setProblems((prev) => prev.filter((problem) => problem.id !== problemId))
   }
 
   function submitRecall(problemId, confidence) {
@@ -30,11 +67,14 @@ export function ProblemsProvider({ children }) {
   const value = useMemo(
     () => ({
       problems,
+      isLoading,
+      errorMessage,
       addProblem,
+      deleteProblem,
       submitRecall,
       getProblemById,
     }),
-    [problems],
+    [problems, isLoading, errorMessage],
   )
 
   return <ProblemsContext.Provider value={value}>{children}</ProblemsContext.Provider>

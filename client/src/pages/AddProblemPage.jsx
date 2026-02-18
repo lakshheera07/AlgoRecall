@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { toast } from 'react-toastify'
 import { useProblems } from '../state/ProblemsContext'
 
 const emptyForm = {
@@ -18,13 +19,14 @@ function AddProblemPage() {
   const { addProblem } = useProblems()
   const navigate = useNavigate()
   const [form, setForm] = useState(emptyForm)
+  const [isSaving, setIsSaving] = useState(false)
 
   function handleChange(event) {
     const { name, value } = event.target
     setForm((prev) => ({ ...prev, [name]: value }))
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
 
     if (
@@ -34,22 +36,32 @@ function AddProblemPage() {
       !form.betterApproach.trim() ||
       !form.optimalApproach.trim()
     ) {
+      toast.warning('Please fill all required fields')
       return
     }
 
-    addProblem({
-      ...form,
-      title: form.title.trim(),
-      pattern: form.pattern.trim(),
-      describeProblemInOwnWords: form.describeProblemInOwnWords.trim(),
-      bruteApproach: form.bruteApproach.trim(),
-      betterApproach: form.betterApproach.trim(),
-      optimalApproach: form.optimalApproach.trim(),
-      code: form.code.trim(),
-    })
+    try {
+      setIsSaving(true)
 
-    setForm(emptyForm)
-    navigate('/problems')
+      await addProblem({
+        ...form,
+        title: form.title.trim(),
+        pattern: form.pattern.trim(),
+        describeProblemInOwnWords: form.describeProblemInOwnWords.trim(),
+        bruteApproach: form.bruteApproach.trim(),
+        betterApproach: form.betterApproach.trim(),
+        optimalApproach: form.optimalApproach.trim(),
+        code: form.code.trim(),
+      })
+
+      setForm(emptyForm)
+      toast.success('Problem added successfully')
+      navigate('/problems')
+    } catch (error) {
+      toast.error(error.message || 'Failed to add problem')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -67,7 +79,7 @@ function AddProblemPage() {
           />
         </label>
 
-         <label>
+        <label>
           Describe problem in your own words
           <textarea
             name="describeProblemInOwnWords"
@@ -153,6 +165,7 @@ function AddProblemPage() {
         </label>
 
         <button type="submit">Save Problem</button>
+        {isSaving ? <p>Saving...</p> : null}
       </form>
     </section>
   )

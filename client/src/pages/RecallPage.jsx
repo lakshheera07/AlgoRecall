@@ -5,11 +5,29 @@ import { useProblems } from '../state/ProblemsContext'
 function RecallPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { getProblemById, submitRecall } = useProblems()
+  const { getProblemById, submitRecall, isLoading, errorMessage } = useProblems()
 
   const problem = getProblemById(Number(id))
   const [revealed, setRevealed] = useState(false)
   const [confidence, setConfidence] = useState('')
+
+  if (isLoading) {
+    return (
+      <section className="page-section">
+        <h2>Recall Screen</h2>
+        <p>Loading problem...</p>
+      </section>
+    )
+  }
+
+  if (errorMessage) {
+    return (
+      <section className="page-section">
+        <h2>Recall Screen</h2>
+        <p>{errorMessage}</p>
+      </section>
+    )
+  }
 
   if (!problem) {
     return (
@@ -31,7 +49,7 @@ function RecallPage() {
   }
 
   return (
-    <section className="page-section">
+    <section className="page-section recall-page">
       <h2>Recall Screen</h2>
 
       <div className="problem-card">
@@ -48,7 +66,11 @@ function RecallPage() {
       </div>
 
       {!revealed ? (
-        <button type="button" onClick={() => setRevealed(true)}>
+        <button
+          type="button"
+          className="reveal-button-top-right"
+          onClick={() => setRevealed(true)}
+        >
           Reveal
         </button>
       ) : (
