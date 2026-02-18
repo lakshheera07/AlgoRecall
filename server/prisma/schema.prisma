@@ -25,8 +25,23 @@ model Problem {
   better_approach           String?
   optimal_approach          String?
   code                      String?
+  nextRevisionAt            DateTime?
+  recallLogs                RecallLog[]
   createdAt                 DateTime @default(now())
   updatedAt                 DateTime @updatedAt
 
   @@map("problems")
+}
+
+model RecallLog {
+  id         Int      @id @default(autoincrement())
+  problemId  Int
+  confidence Int
+  category   String
+  createdAt  DateTime @default(now())
+
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@index([problemId])
+  @@map("recall_logs")
 }

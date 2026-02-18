@@ -5,6 +5,7 @@ function mapServerToClient(problem) {
     id: problem.id,
     title: problem.title ?? '',
     platform: problem.platform ?? 'LeetCode',
+    dataStructure: problem.dataStructure ?? '',
     pattern: problem.pattern ?? '',
     difficulty: problem.difficulty ?? 'Easy',
     describeProblemInOwnWords:
@@ -13,7 +14,8 @@ function mapServerToClient(problem) {
     betterApproach: problem.better_approach ?? '',
     optimalApproach: problem.optimal_approach ?? '',
     code: problem.code ?? '',
-    lastConfidence: problem.lastConfidence ?? null,
+    nextRevisionAt: problem.nextRevisionAt ?? null,
+    lastConfidence: problem.lastConfidence ?? problem.latestConfidence ?? null,
   }
 }
 
@@ -21,6 +23,7 @@ function mapClientToServer(problem) {
   return {
     title: problem.title,
     platform: problem.platform,
+    dataStructure: problem.dataStructure,
     pattern: problem.pattern,
     difficulty: problem.difficulty,
     describeProblemInOwnWords: problem.describeProblemInOwnWords,
@@ -63,8 +66,37 @@ export async function createProblemApi(problem) {
   return mapServerToClient(data)
 }
 
+export async function updateProblemApi(problemId, problem) {
+  const data = await request(`/api/problems/${problemId}`, {
+    method: 'PUT',
+    body: JSON.stringify(mapClientToServer(problem)),
+  })
+
+  return mapServerToClient(data)
+}
+
 export async function deleteProblemApi(problemId) {
   await request(`/api/problems/${problemId}`, {
     method: 'DELETE',
   })
+}
+
+export async function logRecallApi({ problemId, confidence }) {
+  return request('/api/recall', {
+    method: 'POST',
+    body: JSON.stringify({ problemId, confidence }),
+  })
+}
+
+export async function fetchReviseTodayApi() {
+  const data = await request('/api/revision/today')
+  return data.map(mapServerToClient)
+}
+
+export async function fetchPatternAnalyticsApi() {
+  return request('/api/revision/analytics')
+}
+
+export async function fetchAnalysisInsightsApi() {
+  return request('/api/revision/insights')
 }
