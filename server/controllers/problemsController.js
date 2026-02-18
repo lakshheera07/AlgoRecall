@@ -63,8 +63,13 @@ export async function createProblemHandler(request, response) {
   }
 
   try {
+    const defaultNextRevisionAt = new Date(Date.now() + 12 * 60 * 60 * 1000)
+
     const createdProblem = await prisma.problem.create({
-      data: normalizeProblemPayload(request.body),
+      data: {
+        ...normalizeProblemPayload(request.body),
+        nextRevisionAt: defaultNextRevisionAt,
+      },
     })
 
     return response.status(201).json(createdProblem)
@@ -78,9 +83,26 @@ export async function getAllProblemsHandler(_request, response) {
   try {
     const problems = await prisma.problem.findMany({
       orderBy: { id: 'desc' },
+      include: {
+        recallLogs: {
+          select: {
+            confidence: true,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 1,
+        },
+      },
     })
 
-    return response.status(200).json(problems)
+    const payload = problems.map((problem) => ({
+      ...problem,
+      latestConfidence: problem.recallLogs[0]?.confidence ?? null,
+      recallLogs: undefined,
+    }))
+
+    return response.status(200).json(payload)
   } catch (error) {
     console.error(error)
     return response.status(500).json({ error: 'Failed to fetch problems' })
@@ -95,7 +117,20 @@ export async function getProblemByIdHandler(request, response) {
 
   let problem
   try {
-    problem = await prisma.problem.findUnique({ where: { id: problemId } })
+    problem = await prisma.problem.findUnique({
+      where: { id: problemId },
+      include: {
+        recallLogs: {
+          select: {
+            confidence: true,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 1,
+        },
+      },
+    })
   } catch (error) {
     console.error(error)
     return response.status(500).json({ error: 'Failed to fetch problem' })
@@ -105,7 +140,11 @@ export async function getProblemByIdHandler(request, response) {
     return response.status(404).json({ error: 'Problem not found' })
   }
 
-  return response.status(200).json(problem)
+  return response.status(200).json({
+    ...problem,
+    latestConfidence: problem.recallLogs[0]?.confidence ?? null,
+    recallLogs: undefined,
+  })
 }
 
 export async function updateProblemHandler(request, response) {

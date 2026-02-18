@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { useProblems } from '../state/ProblemsContext'
 
@@ -16,11 +16,34 @@ const emptyForm = {
   code: '',
 }
 
-function AddProblemPage() {
-  const { addProblem } = useProblems()
+function EditProblemPage() {
+  const { id } = useParams()
   const navigate = useNavigate()
+  const { getProblemById, updateProblem, isLoading, errorMessage } = useProblems()
+  const problemId = Number(id)
+  const existingProblem = getProblemById(problemId)
+
   const [form, setForm] = useState(emptyForm)
   const [isSaving, setIsSaving] = useState(false)
+
+  useEffect(() => {
+    if (!existingProblem) {
+      return
+    }
+
+    setForm({
+      title: existingProblem.title ?? '',
+      platform: existingProblem.platform ?? 'LeetCode',
+      dataStructure: existingProblem.dataStructure ?? '',
+      pattern: existingProblem.pattern ?? '',
+      difficulty: existingProblem.difficulty ?? 'Easy',
+      describeProblemInOwnWords: existingProblem.describeProblemInOwnWords ?? '',
+      bruteApproach: existingProblem.bruteApproach ?? '',
+      betterApproach: existingProblem.betterApproach ?? '',
+      optimalApproach: existingProblem.optimalApproach ?? '',
+      code: existingProblem.code ?? '',
+    })
+  }, [existingProblem])
 
   function handleChange(event) {
     const { name, value } = event.target
@@ -44,8 +67,7 @@ function AddProblemPage() {
 
     try {
       setIsSaving(true)
-
-      await addProblem({
+      await updateProblem(problemId, {
         ...form,
         title: form.title.trim(),
         dataStructure: form.dataStructure.trim(),
@@ -57,29 +79,56 @@ function AddProblemPage() {
         code: form.code.trim(),
       })
 
-      setForm(emptyForm)
-      toast.success('Problem added successfully')
+      toast.success('Problem updated successfully')
       navigate('/problems')
     } catch (error) {
-      toast.error(error.message || 'Failed to add problem')
+      toast.error(error.message || 'Failed to update problem')
     } finally {
       setIsSaving(false)
     }
   }
 
+  if (isLoading) {
+    return (
+      <section className="page-section">
+        <h2>Edit Problem</h2>
+        <p>Loading problem...</p>
+      </section>
+    )
+  }
+
+  if (errorMessage) {
+    return (
+      <section className="page-section">
+        <h2>Edit Problem</h2>
+        <p>{errorMessage}</p>
+      </section>
+    )
+  }
+
+  if (!existingProblem) {
+    return (
+      <section className="page-section">
+        <h2>Edit Problem</h2>
+        <p>Problem not found.</p>
+      </section>
+    )
+  }
+
   return (
     <section className="page-section">
-      <h2>Add Problem</h2>
+      <h2>Edit Problem</h2>
 
       <form onSubmit={handleSubmit} className="form-grid">
+        <div className="form-top-actions">
+          <button type="button" onClick={() => navigate('/problems')}>
+            Cancel
+          </button>
+        </div>
+
         <label>
-          Problem title 
-          <input
-            name="title"
-            value={form.title}
-            onChange={handleChange}
-            required
-          />
+          Problem title
+          <input name="title" value={form.title} onChange={handleChange} required />
         </label>
 
         <label>
@@ -102,12 +151,7 @@ function AddProblemPage() {
 
         <label>
           Data Structure
-          <select
-            name="dataStructure"
-            value={form.dataStructure}
-            onChange={handleChange}
-            required
-          >
+          <select name="dataStructure" value={form.dataStructure} onChange={handleChange} required>
             <option value="">Select data structure</option>
             <option value="Array">Array</option>
             <option value="Strings">Strings</option>
@@ -123,36 +167,21 @@ function AddProblemPage() {
 
         <label>
           Pattern
-          <input
-            name="pattern"
-            value={form.pattern}
-            onChange={handleChange}
-            required
-          />
+          <input name="pattern" value={form.pattern} onChange={handleChange} required />
         </label>
 
         <label>
           Difficulty
-          <select
-            name="difficulty"
-            value={form.difficulty}
-            onChange={handleChange}
-          >
+          <select name="difficulty" value={form.difficulty} onChange={handleChange}>
             <option value="Easy">Easy</option>
             <option value="Medium">Medium</option>
             <option value="Hard">Hard</option>
           </select>
         </label>
 
-
         <label>
           Brute force approach
-          <textarea
-            name="bruteApproach"
-            value={form.bruteApproach}
-            onChange={handleChange}
-            rows={4}
-          />
+          <textarea name="bruteApproach" value={form.bruteApproach} onChange={handleChange} rows={4} />
         </label>
 
         <label>
@@ -178,19 +207,15 @@ function AddProblemPage() {
 
         <label>
           Optional code
-          <textarea
-            name="code"
-            value={form.code}
-            onChange={handleChange}
-            rows={6}
-          />
+          <textarea name="code" value={form.code} onChange={handleChange} rows={6} />
         </label>
 
-        <button type="submit">Save Problem</button>
+        <button type="submit">Update Problem</button>
+
         {isSaving ? <p>Saving...</p> : null}
       </form>
     </section>
   )
 }
 
-export default AddProblemPage
+export default EditProblemPage

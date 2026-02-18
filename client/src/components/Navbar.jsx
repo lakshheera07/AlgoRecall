@@ -3,7 +3,9 @@ import { NavLink } from 'react-router-dom'
 const navItems = [
   { label: 'Home', to: '/' },
   { label: 'Add Problem', to: '/add' },
-  { label: 'Problem List', to: '/problems' },
+  { label: 'Problems', to: '/problems' },
+  { label: 'Revision Hub', to: '/revision' },
+  { label: 'Analysis', to: '/analysis' },
 ]
 
 const socialItems = [

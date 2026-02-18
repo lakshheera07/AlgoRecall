@@ -3,6 +3,8 @@ import {
   createProblemApi,
   deleteProblemApi,
   fetchProblemsApi,
+  logRecallApi,
+  updateProblemApi,
 } from '../api/problemsApi'
 
 const ProblemsContext = createContext(null)
@@ -52,10 +54,28 @@ export function ProblemsProvider({ children }) {
     setProblems((prev) => prev.filter((problem) => problem.id !== problemId))
   }
 
-  function submitRecall(problemId, confidence) {
+  async function updateProblem(problemId, formValues) {
+    const updatedProblem = await updateProblemApi(problemId, formValues)
+
+    setProblems((prev) =>
+      prev.map((problem) => (problem.id === problemId ? updatedProblem : problem)),
+    )
+
+    return updatedProblem
+  }
+
+  async function submitRecall(problemId, confidence) {
+    const result = await logRecallApi({ problemId, confidence })
+
     setProblems((prev) =>
       prev.map((problem) =>
-        problem.id === problemId ? { ...problem, lastConfidence: confidence } : problem,
+        problem.id === problemId
+          ? {
+              ...problem,
+              lastConfidence: confidence,
+              nextRevisionAt: result.nextRevisionAt ?? problem.nextRevisionAt,
+            }
+          : problem,
       ),
     )
   }
@@ -71,6 +91,7 @@ export function ProblemsProvider({ children }) {
       errorMessage,
       addProblem,
       deleteProblem,
+      updateProblem,
       submitRecall,
       getProblemById,
     }),

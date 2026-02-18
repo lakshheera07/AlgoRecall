@@ -1,46 +1,31 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { useProblems } from '../state/ProblemsContext'
 
+function getDifficultyTagClass(difficulty) {
+  const normalized = String(difficulty || '').trim().toLowerCase()
+
+  if (normalized === 'easy') {
+    return 'meta-tag-difficulty-easy'
+  }
+
+  if (normalized === 'medium') {
+    return 'meta-tag-difficulty-medium'
+  }
+
+  if (normalized === 'hard') {
+    return 'meta-tag-difficulty-hard'
+  }
+
+  return 'meta-tag-difficulty'
+}
+
 function ProblemListPage() {
-  const { problems, submitRecall, deleteProblem, isLoading, errorMessage } = useProblems()
-  const [openProblemId, setOpenProblemId] = useState(null)
-  const [revealedByProblemId, setRevealedByProblemId] = useState({})
-  const [confidenceByProblemId, setConfidenceByProblemId] = useState({})
+  const navigate = useNavigate()
+  const { problems, deleteProblem, isLoading, errorMessage } = useProblems()
   const [pendingDeleteId, setPendingDeleteId] = useState(null)
-
-  function handleToggle(problemId) {
-    setOpenProblemId((prev) => {
-      if (prev === problemId) {
-        return null
-      }
-
-      setRevealedByProblemId((oldState) => ({ ...oldState, [problemId]: false }))
-      setConfidenceByProblemId((oldState) => ({ ...oldState, [problemId]: '' }))
-      return problemId
-    })
-  }
-
-  function handleReveal(problemId) {
-    setRevealedByProblemId((prev) => ({ ...prev, [problemId]: true }))
-  }
-
-  function handleConfidenceChange(problemId, value) {
-    setConfidenceByProblemId((prev) => ({ ...prev, [problemId]: value }))
-  }
-
-  function handleConfidenceSubmit(event, problemId) {
-    event.preventDefault()
-
-    const selectedConfidence = confidenceByProblemId[problemId]
-    if (!selectedConfidence) {
-      return
-    }
-
-    submitRecall(problemId, Number(selectedConfidence))
-    setOpenProblemId(null)
-  }
 
   function openDeleteDialog(problemId) {
     setPendingDeleteId(problemId)
@@ -57,7 +42,6 @@ function ProblemListPage() {
 
     try {
       await deleteProblem(pendingDeleteId)
-      setOpenProblemId((prev) => (prev === pendingDeleteId ? null : prev))
       toast.success('Problem deleted successfully')
     } catch (error) {
       toast.error(error.message || 'Failed to delete problem')
@@ -68,7 +52,7 @@ function ProblemListPage() {
 
   return (
     <section className="page-section">
-      <h2>Problem List</h2>
+      <h2>Problems</h2>
 
       {isLoading ? <p>Loading problems...</p> : null}
       {errorMessage ? <p>{errorMessage}</p> : null}
@@ -90,10 +74,27 @@ function ProblemListPage() {
           {problems.map((problem) => (
             <li key={problem.id} className="problem-card">
               <div className="problem-row">
-                <h3>{problem.title}</h3>
+                <div>
+                  <div className="problem-title-meta-row">
+                    <h3>{problem.title}</h3>
+                    <div className="meta-tags" aria-label="Problem metadata">
+                      <span className="meta-tag">
+                        {problem.dataStructure || 'Not specified'}
+                      </span>
+                      <span
+                        className={`meta-tag ${getDifficultyTagClass(problem.difficulty)}`}
+                      >
+                        {problem.difficulty}
+                      </span>
+                    </div>
+                  </div>
+                </div>
                 <div className="problem-row-actions">
-                  <button type="button" onClick={() => handleToggle(problem.id)}>
-                    {openProblemId === problem.id ? 'Hide' : 'Revise'}
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/problems/${problem.id}/edit`)}
+                  >
+                    Edit
                   </button>
                   <button
                     type="button"
@@ -104,77 +105,6 @@ function ProblemListPage() {
                   </button>
                 </div>
               </div>
-
-              {openProblemId === problem.id ? (
-                <div className="accordion-content">
-                  <div className="recall-header-row">
-                    <p>
-                      Description: {problem.describeProblemInOwnWords || 'Not provided.'}
-                    </p>
-                    {!revealedByProblemId[problem.id] ? (
-                      <button type="button" onClick={() => handleReveal(problem.id)}>
-                        Reveal
-                      </button>
-                    ) : null}
-                  </div>
-                  <p>Difficulty: {problem.difficulty}</p>
-                  <p>Mentally recall before revealing:</p>
-                  <ul>
-                    <li>What is the pattern?</li>
-                    <li>What is the brute-force approach?</li>
-                    <li>Why does brute force fail?</li>
-                    <li>What is the optimal approach?</li>
-                  </ul>
-
-                  {revealedByProblemId[problem.id] ? (
-                    <>
-                      <p>Platform: {problem.platform}</p>
-                      <p>Pattern: {problem.pattern}</p>
-                      <p>
-                        <strong>Brute:</strong> {problem.bruteApproach}
-                      </p>
-                      <p>
-                        <strong>Better:</strong> {problem.betterApproach}
-                      </p>
-                      <p>
-                        <strong>Optimal:</strong> {problem.optimalApproach}
-                      </p>
-                      <p>
-                        <strong>Code:</strong>
-                      </p>
-                      <pre>{problem.code || 'No code provided.'}</pre>
-
-                      <form
-                        className="inline-form"
-                        onSubmit={(event) => handleConfidenceSubmit(event, problem.id)}
-                      >
-                        <label>
-                          Confidence (1-5)
-                          <select
-                            value={confidenceByProblemId[problem.id] ?? ''}
-                            onChange={(event) =>
-                              handleConfidenceChange(problem.id, event.target.value)
-                            }
-                            required
-                          >
-                            <option value="">Select</option>
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            <option value="4">4</option>
-                            <option value="5">5</option>
-                          </select>
-                        </label>
-                        <button type="submit">Submit Confidence</button>
-                      </form>
-                    </>
-                  ) : null}
-
-                  <p>
-                    Last confidence: {problem.lastConfidence ? `${problem.lastConfidence}/5` : 'Not submitted yet'}
-                  </p>
-                </div>
-              ) : null}
             </li>
           ))}
         </ul>

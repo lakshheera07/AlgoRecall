@@ -1,16 +1,21 @@
 :root {
-  --primary-green: #16A34A;
-  --secondary-green: #22C55E;
-  --accent-green: #86EFAC;
+  --primary-green: #7C3AED;
+  --secondary-green: #8B5CF6;
+  --accent-green: #4C1D95;
 
-  --bg-main: #F0FDF4;
-  --bg-card: #ECFDF5;
+  --bg-main: #050507;
+  --bg-card: #12101C;
+  --bg-gradient: linear-gradient(135deg, #050507 0%, #140E24 45%, #1B1230 100%);
 
-  --text-primary: #064E3B;
-  --text-secondary: #065F46;
+  --text-primary: #FFFFFF;
+  --text-secondary: #EDE9FE;
 
-  --warning: #F59E0B;
-  --danger: #DC2626;
+  --warning: #FBBF24;
+  --danger: #F87171;
+
+  --difficulty-easy: #22C55E;
+  --difficulty-medium: #F59E0B;
+  --difficulty-hard: #EF4444;
 
   font-family: Arial, sans-serif;
   line-height: 1.4;
@@ -24,5 +29,5 @@
 
 body {
   margin: 0;
-  background: var(--bg-main);
+  background: var(--bg-gradient);
 }
