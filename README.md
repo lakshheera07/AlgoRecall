@@ -98,8 +98,6 @@ Frontend runs on: `http://localhost:5173`
 
 ### Client
 - `npm run dev` → start Vite dev server
-- `npm run build` → production build
-- `npm run lint` → lint frontend
 
 ### Server
 - `npm run dev` → start API with nodemon
